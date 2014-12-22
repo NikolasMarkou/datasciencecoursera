@@ -1,0 +1,47 @@
+---
+title: "Regression Models Project"
+author: "Nikolas Markou - nikolasmarkou@gmail.com"
+output: pdf_document
+---
+## Introduction
+Our assignment is to answer whether or not and how much the Miles Per Gallon (mpg) variable in the mtcars dataset is influenced by the transmission type (am) which may be automatic(0) or manual(1). 
+The data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models).
+
+## Analysis
+
+Our first test is to establish (before we start modelling) if there is a statistically significant difference between the groups that use automatic and manual transmissions
+```{r}
+data(mtcars)
+t.test(mtcars[mtcars$am == 0,]$mpg, mtcars[mtcars$am == 1,]$mpg)
+fitTest0 <- lm(mpg~factor(am), data=mtcars)
+```
+There is statistical significant difference between the non adjusted groups. It shows that manual has greater mpg
+that automatic by 7.24 miles per gallon.
+However this difference may not be explained by the transmission alone and it may be coincidence that the cars in the one group were found to have better mileage due to some other factor.
+To test our hypothesis we fit the data to a model where the difference between the 2 groups is assumed as a constant value. That is there is a constant difference of `mpg` between automatic and manual transmission cars.
+```{r}
+fitTest1 <- lm(mpg ~ factor(am) + . - am, data=mtcars); 
+summary(fitTest1);
+```
+We can see that the constant `factor(am)` is not statistically significant. That means that transmission alone may not explain the `mpg` difference well. From the summary we can see that `weight` seems much more significant. So we adjust our model to incorporate that and drop variables of lesser imprortance while keeping the `factor(am)` in. We choose to include the factors `weight`, `horsepower` and `1/4 mile time`.
+```{r}
+fitTest2 <- lm(mpg ~ factor(am) + wt + hp + qsec, data=mtcars); 
+summary(fitTest2);
+```
+This model seems to explain the data better (less residual error and `R^2`) while keeping the possibility of overfitting low. It also shows that `weight` and `raw horsepower` are much better predictors of the car's mileage. We can also deduce from the model that while still not extremely statistically significant the transimission factor is still positive, meaning that manual transmission is better by 2.5 miles per gallon.
+If however we assume that `hp` and `1/4 mile time` are correlated we could do better at fitting our model with fewer variables. To do so we use the R function `step()` that incrementally fits the best model by removing correlated or unnecessary variables.
+```{r}
+fitBest <- step(fitTest2, direction='both')
+summary(fitBest);
+```
+So finally our model seems to fit the data very nicely, with lower residual error and fewer confounding variables. From the results it is statistically significant that the manual transmission gives you 2.93 more miles per gallon compared to automatic. This is also confirmed by running ANOVA test on our first model that takes only transmission type as input and our best model that uses `weight` and `1/4 mile time`.
+```{r}
+anova(fitTest0,fitBest)
+```
+We also run `confint()` to get the 95% confidence interval of the constant `mpg` improvement due to the transmission type.
+```{r}
+confint(fitBest)
+```
+## Conclusion
+The final analysis suggests that there is statistically significant difference between cars with automatic transmission and manual transmission. 
+From the dataset we conclude with 95% accuracy that **cars with manual transmission have higher mpg** and that change is with 95% confidence between **0.04 and 5 miles per gallon** with the most probable value being **2.9** miles per gallon improvement compared to the automatic transmission. 
